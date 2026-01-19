@@ -1,78 +1,109 @@
-import React, { useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from 'react';
+import { Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronDown } from "./ChevronDown";
 import { colors } from "./colors";
+import { Plus } from './Plus';
+import styles from './styles';
+import { Task } from './task';
+import {
+  TaskData,
+  addTask,
+  getDefaultTasks,
+  loadTasksFromStorage,
+  removeTask,
+  saveTasksToStorage,
+  updateTaskText
+} from './taskUtils';
 
 let padding_small = 8;
 let padding_medium = 16;
 let font_size_title = 32;
 let font_size_text = 18;
 
-const styles = StyleSheet.create({
-  defaultText: {
-    color: colors.text_color1,
-  },
-  titleText: {
-    color: colors.text_color1,
-    fontSize: font_size_title,
-  },
-  headerText: {
-    color: colors.text_color1,
-    fontSize: 18,
-  },
-  task: {
-    backgroundColor: "red",
-  },
-  task_title: {
-    color: "white",
-    flex: 1,
-  },
-  task_top: {
-    backgroundColor: "darkred",
-    padding: padding_small,
-    gap: padding_small,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-});
+
+
 
 export default function Index() {
-  const [isTaskExpanded, setIsTaskExpanded] = useState(false);
-  const [contentHeight, setContentHeight] = useState(0);
-  const rotationValue = useRef(new Animated.Value(0)).current;
-  const heightValue = useRef(new Animated.Value(0)).current;
+  const [tasks, setTasks] = useState<TaskData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const toggle_content = () => {
-    // Pick value to animate to based on if expended
-    const toValue = isTaskExpanded ? 0 : 1;
-    const heightToValue = isTaskExpanded ? 0 : contentHeight;
-
-    // Run animations in parallel
-    Animated.parallel([
-      // Animate rotationValue between 0 and 1
-      Animated.timing(rotationValue, {
-        toValue,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      // Animate heightValue between 0 and contentHeight
-      Animated.timing(heightValue, {
-        toValue: heightToValue,
-        duration: 200,
-        useNativeDriver: false,
-      })
-    ]).start();
-
-    setIsTaskExpanded(!isTaskExpanded);
+  // Recursively convert TaskData to TaskProps format
+  const convertTaskDataToProps = (taskData: TaskData): any => {
+    return {
+      taskId: taskData.id,
+      text: taskData.name,
+      completed: taskData.completed,
+      subTasks: taskData.subTasks?.map(convertTaskDataToProps)
+    };
   };
 
-  // interpolate the 0 1 value to deg
-  const rotation = rotationValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '180deg'],
-  });
+  // Load tasks from storage when app starts
+  const loadTasks = async () => {
+    try {
+      const savedTasks = await loadTasksFromStorage();
+      if (savedTasks.length > 0) {
+        setTasks(savedTasks);
+      } else {
+        // If no saved tasks, create default ones
+        const defaultTasks = getDefaultTasks();
+        setTasks(defaultTasks);
+        await saveTasksToStorage(defaultTasks);
+      }
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  // Update tasks and save to storage
+  const updateTasks = async (newTasks: TaskData[]) => {
+    setTasks(newTasks);
+    await saveTasksToStorage(newTasks);
+  };
+
+  // Handle task text updates
+  const handleTaskTextUpdate = async (taskId: string, newText: string) => {
+    const updatedTasks = await updateTaskText(tasks, taskId, newText);
+    setTasks(updatedTasks);
+  };
+
+  // Handle adding new subtasks
+  const handleAddSubTask = async (parentTaskId: string) => {
+    const updatedTasks = await addTask(tasks, 'New subtask', parentTaskId);
+    setTasks(updatedTasks);
+  };
+
+  // Handle adding new main tasks
+  const handleAddMainTask = async () => {
+    const updatedTasks = await addTask(tasks, 'New task');
+    setTasks(updatedTasks);
+  };
+
+  // Handle removing tasks
+  const handleRemoveTask = async (taskId: string) => {
+    const updatedTasks = await removeTask(tasks, taskId);
+    setTasks(updatedTasks);
+  };
+
+  // Load tasks on component mount
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: colors.background1,
+      }}>
+        <Text style={styles.headerText}>Loading tasks...</Text>
+      </SafeAreaView>
+    );
+  }
+  
   return (
     <SafeAreaView style={{
       flex: 1,
@@ -96,54 +127,36 @@ export default function Index() {
         overflow: "hidden",
       }}>
         {/* Top */}
-        <View style={{ padding: padding_medium, backgroundColor: colors.background2, }}>
+        <View style={{ 
+          padding: padding_medium, 
+          backgroundColor: colors.background2,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
           <Text style={styles.headerText}>To do list</Text>
+          <TouchableOpacity onPress={handleAddMainTask}>
+            <Plus size={24} color={colors.text_color1} />
+          </TouchableOpacity>
         </View>
         {/* Content */}
-        <View style={{ minHeight: 50, padding: padding_small, }}>
-          {/* Task */}
-          <View style={styles.task}>
-            {/* Top */}
-            <View style={styles.task_top}>
-              <View style={{
-                borderStyle: "solid",
-                borderColor: "#ffffff",
-                borderWidth: 2,
-                borderRadius: 99999,
-                height: font_size_text,
-                width: font_size_text,
-              }}>
-              </View>
-              <Text style={styles.task_title}>Water Plants</Text>
-              <TouchableOpacity onPress={toggle_content}>
-                {/* Chevron down */}
-                <Animated.View style={{ transform: [{ rotate: rotation }] }}>
-                  <ChevronDown size={24} color={colors.text_color1} />
-                </Animated.View>
-
-              </TouchableOpacity>
-            </View>
-
-
-
-            {/* content */}
-            <Animated.View style={{
-              height: heightValue,
-              overflow: 'hidden',
-            }}>
-              <View 
-                onLayout={(event) => {
-                  const { height } = event.nativeEvent.layout;
-                  setContentHeight(height);
-                }}
-                style={{ padding: padding_small, gap: padding_small, }}
-              >
-                <View style={{backgroundColor: "blue",}}><Text style={{ color: "white" }}>No subtasks yet</Text></View>
-                
-                <View style={{backgroundColor: "blue",}}><Text style={{ color: "white" }}>No subtasks yet</Text></View>
-              </View>
-            </Animated.View>
-          </View>
+        <View style={{ minHeight: 50, padding: padding_small, gap: padding_small,}}>
+          {tasks.length > 0 ? (
+            tasks.map((task) => (
+              <Task 
+                key={task.id}
+                taskId={task.id}
+                text={task.name}
+                completed={task.completed}
+                onUpdateText={handleTaskTextUpdate}
+                onAddSubTask={handleAddSubTask}
+                onRemoveTask={handleRemoveTask}
+                subTasks={task.subTasks?.map(convertTaskDataToProps)}
+              />
+            ))
+          ) : (
+            <Text style={styles.task_title}>No tasks yet</Text>
+          )}
         </View>
       </View>
     </SafeAreaView>
