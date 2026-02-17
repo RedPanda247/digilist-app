@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { Text, TouchableOpacity, View } from "react-native";
+import { Keyboard, Text, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { colors } from "./colors";
+import { colors, TaskColorKey } from "./colors";
 import { Plus } from './Plus';
 import styles from './styles';
 import { Task } from './task';
 import {
-  TaskData,
   addTask,
   getDefaultTasks,
   loadTasksFromStorage,
   removeTask,
   saveTasksToStorage,
+  TaskData,
+  toggleTaskCompletion,
+  updateTaskColor,
+  updateTaskDueDate,
   updateTaskText
 } from './taskUtils';
 
@@ -33,6 +36,8 @@ export default function Index() {
       taskId: taskData.id,
       text: taskData.name,
       completed: taskData.completed,
+      color: taskData.color,
+      dueDate: taskData.dueDate,
       subTasks: taskData.subTasks?.map(convertTaskDataToProps)
     };
   };
@@ -86,6 +91,24 @@ export default function Index() {
     setTasks(updatedTasks);
   };
 
+  // Handle updating task color
+  const handleUpdateColor = async (taskId: string, color: TaskColorKey) => {
+    const updatedTasks = await updateTaskColor(tasks, taskId, color);
+    setTasks(updatedTasks);
+  };
+
+  // Handle toggling task completion
+  const handleToggleComplete = async (taskId: string) => {
+    const updatedTasks = await toggleTaskCompletion(tasks, taskId);
+    setTasks(updatedTasks);
+  };
+
+  // Handle updating task due date
+  const handleUpdateDueDate = async (taskId: string, dueDate: string | undefined) => {
+    const updatedTasks = await updateTaskDueDate(tasks, taskId, dueDate);
+    setTasks(updatedTasks);
+  };
+
   // Load tasks on component mount
   useEffect(() => {
     loadTasks();
@@ -105,16 +128,17 @@ export default function Index() {
   }
   
   return (
-    <SafeAreaView style={{
-      flex: 1,
-      alignItems: "center",
-      backgroundColor: colors.background1,
-    }}>
-      <Text style={[styles.titleText, { margin: padding_medium * 4 }]}>
-        Digilist
-      </Text>
-      {/* To do list */}
-      <View style={{
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <SafeAreaView style={{
+        flex: 1,
+        alignItems: "center",
+        backgroundColor: colors.background1,
+      }}>
+        <Text style={[styles.titleText, { margin: padding_medium * 4 }]}>
+          Digilist
+        </Text>
+        {/* To do list */}
+        <View style={{
         borderStyle: "solid",
         borderColor: colors.grey,
         borderWidth: 0.5,
@@ -148,9 +172,14 @@ export default function Index() {
                 taskId={task.id}
                 text={task.name}
                 completed={task.completed}
+                color={task.color}
+                dueDate={task.dueDate}
                 onUpdateText={handleTaskTextUpdate}
                 onAddSubTask={handleAddSubTask}
                 onRemoveTask={handleRemoveTask}
+                onUpdateColor={handleUpdateColor}
+                onUpdateDueDate={handleUpdateDueDate}
+                onToggleComplete={handleToggleComplete}
                 subTasks={task.subTasks?.map(convertTaskDataToProps)}
               />
             ))
@@ -159,6 +188,7 @@ export default function Index() {
           )}
         </View>
       </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </TouchableWithoutFeedback>
   );
 }

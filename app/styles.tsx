@@ -24,25 +24,28 @@ const styles = StyleSheet.create({
     borderStyle: "solid",
     borderWidth: 0.5,
     borderColor: "rgba(200, 200, 200, 0.7)",
+    // Remove overflow: "hidden" to allow shadows to be visible
     overflow: "hidden",
-    // shadowColor: "black",
-    // shadowOpacity: 0.8,
-    // shadowRadius: 4,
-    // shadowOffset: {
-    //   width: 2,
-    //   height: 2,
-    // }
+    shadowColor: "black",
+    shadowOpacity: 0.9,
+    shadowRadius: 4,
+    shadowOffset: {
+      width: 2,
+      height: 2,
+    },
+    // Android shadow support
+    elevation: 4,
   },
   task_title: {
     color: "white",
-    flex: 1,
   },
   task_top: {
     backgroundColor: "darkred",
     padding: padding_small,
     gap: padding_small,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
+    overflow: "hidden",
   },
 });
 

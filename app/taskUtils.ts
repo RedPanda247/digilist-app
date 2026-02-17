@@ -1,10 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { TaskColorKey } from './colors';
 
 export interface TaskData {
   id: string;
   name: string;
   completed?: boolean;
   subTasks?: TaskData[];
+  color?: TaskColorKey;
+  dueDate?: string;
 }
 
 export const TASKS_STORAGE_KEY = '@digilist_tasks';
@@ -155,6 +158,58 @@ export const clearAllTasks = async (): Promise<void> => {
   } catch (error) {
     console.error('Error clearing tasks:', error);
   }
+};
+
+// Update task color
+export const updateTaskColor = async (tasks: TaskData[], taskId: string, color: TaskColorKey): Promise<TaskData[]> => {
+  const updatedTasks = updateTaskColorRecursive(tasks, taskId, color);
+  await saveTasksToStorage(updatedTasks);
+  return updatedTasks;
+};
+
+// Helper function to update task color recursively
+const updateTaskColorRecursive = (tasks: TaskData[], taskId: string, color: TaskColorKey): TaskData[] => {
+  return tasks.map(task => {
+    if (task.id === taskId) {
+      return {
+        ...task,
+        color: color
+      };
+    }
+    if (task.subTasks && task.subTasks.length > 0) {
+      return {
+        ...task,
+        subTasks: updateTaskColorRecursive(task.subTasks, taskId, color)
+      };
+    }
+    return task;
+  });
+};
+
+// Update task due date
+export const updateTaskDueDate = async (tasks: TaskData[], taskId: string, dueDate: string | undefined): Promise<TaskData[]> => {
+  const updatedTasks = updateTaskDueDateRecursive(tasks, taskId, dueDate);
+  await saveTasksToStorage(updatedTasks);
+  return updatedTasks;
+};
+
+// Helper function to update task due date recursively
+const updateTaskDueDateRecursive = (tasks: TaskData[], taskId: string, dueDate: string | undefined): TaskData[] => {
+  return tasks.map(task => {
+    if (task.id === taskId) {
+      return {
+        ...task,
+        dueDate: dueDate
+      };
+    }
+    if (task.subTasks && task.subTasks.length > 0) {
+      return {
+        ...task,
+        subTasks: updateTaskDueDateRecursive(task.subTasks, taskId, dueDate)
+      };
+    }
+    return task;
+  });
 };
 
 // Get default tasks for first-time users
