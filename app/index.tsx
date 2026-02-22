@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Keyboard, Text, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, TaskColorKey } from "./colors";
+import { APP_INFO } from './constants';
 import { Plus } from './Plus';
 import styles from './styles';
 import { Task } from './task';
@@ -129,27 +130,38 @@ export default function Index() {
   
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <SafeAreaView style={{
-        flex: 1,
-        alignItems: "center",
-        backgroundColor: colors.background1,
-      }}>
-        <Text style={[styles.titleText, { margin: padding_medium * 4 }]}>
-          Digilist
+      <SafeAreaView 
+        style={{
+          flex: 1,
+          alignItems: "center",
+          backgroundColor: colors.background1,
+        }}
+        accessible={true}
+        accessibilityLabel={`${APP_INFO.name} - Task Management App`}
+      >
+        <Text 
+          style={[styles.titleText, { margin: padding_medium * 4 }]}
+          accessible={true}
+          accessibilityRole="header"
+        >
+          {APP_INFO.name}
         </Text>
         {/* To do list */}
-        <View style={{
-        borderStyle: "solid",
-        borderColor: colors.grey,
-        borderWidth: 0.5,
-        borderRadius: padding_small,
-
-        justifyContent: "center",
-        backgroundColor: colors.background3,
-        width: "90%",
-        maxWidth: 256 + 128,
-        overflow: "hidden",
-      }}>
+        <View 
+          style={{
+            borderStyle: "solid",
+            borderColor: colors.grey,
+            borderWidth: 0.5,
+            borderRadius: padding_small,
+            justifyContent: "center",
+            backgroundColor: colors.background3,
+            width: "90%",
+            maxWidth: 256 + 128,
+            overflow: "hidden",
+          }}
+          accessible={true}
+          accessibilityLabel="Task list container"
+        >
         {/* Top */}
         <View style={{ 
           padding: padding_medium, 
@@ -158,13 +170,30 @@ export default function Index() {
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <Text style={styles.headerText}>To do list</Text>
-          <TouchableOpacity onPress={handleAddMainTask}>
+          <Text 
+            style={styles.headerText}
+            accessible={true}
+            accessibilityRole="header"
+          >
+            To do list
+          </Text>
+          <TouchableOpacity 
+            onPress={handleAddMainTask}
+            accessible={true}
+            accessibilityLabel="Add new task"
+            accessibilityHint="Creates a new task in your to-do list"
+            accessibilityRole="button"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Plus size={24} color={colors.text_color1} />
           </TouchableOpacity>
         </View>
         {/* Content */}
-        <View style={{ minHeight: 50, padding: padding_small, gap: padding_small,}}>
+        <View 
+          style={{ minHeight: 50, padding: padding_small, gap: padding_small }}
+          accessible={true}
+          accessibilityLabel={`Task list with ${tasks.length} task${tasks.length !== 1 ? 's' : ''}`}
+        >
           {tasks.length > 0 ? (
             tasks.map((task) => (
               <Task 
@@ -184,7 +213,13 @@ export default function Index() {
               />
             ))
           ) : (
-            <Text style={styles.task_title}>No tasks yet</Text>
+            <Text 
+              style={styles.task_title}
+              accessible={true}
+              accessibilityLabel="No tasks yet. Tap the plus button to add a task"
+            >
+              No tasks yet
+            </Text>
           )}
         </View>
       </View>
