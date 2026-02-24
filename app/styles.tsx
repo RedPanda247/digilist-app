@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
     borderRadius: padding_small * 2,
     borderStyle: "solid",
     borderWidth: 0.5,
-    borderColor: "rgba(200, 200, 200, 0.7)",
+    borderColor: "rgba(200, 200, 200, 0.5)",
     // Remove overflow: "hidden" to allow shadows to be visible
     overflow: "hidden",
     shadowColor: "black",
