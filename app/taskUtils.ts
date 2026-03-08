@@ -31,6 +31,15 @@ export const loadTasksFromStorage = async (): Promise<TaskData[]> => {
   }
 };
 
+// Reorder tasks (move item from fromIndex to toIndex)
+export const reorderTasks = async (tasks: TaskData[], fromIndex: number, toIndex: number): Promise<TaskData[]> => {
+  const reordered = [...tasks];
+  const [moved] = reordered.splice(fromIndex, 1);
+  reordered.splice(toIndex, 0, moved);
+  await saveTasksToStorage(reordered);
+  return reordered;
+};
+
 // Save tasks to AsyncStorage
 export const saveTasksToStorage = async (tasks: TaskData[]): Promise<void> => {
   try {
