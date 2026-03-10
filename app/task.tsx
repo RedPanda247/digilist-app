@@ -1,6 +1,8 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Modal, Platform, Pressable, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ArrowDown } from './ArrowDown';
+import { ArrowUp } from './ArrowUp';
 import { Calendar } from './Calendar';
 import { ChevronDown } from './ChevronDown';
 import colors, { TaskColorKey, taskColors } from './colors';
@@ -28,9 +30,12 @@ interface TaskProps {
     onUpdateColor?: (taskId: string, color: TaskColorKey) => void;
     onUpdateDueDate?: (taskId: string, dueDate: string | undefined) => void;
     onToggleComplete?: (taskId: string) => void;
+    onMoveTask?: (taskId: string, direction: 'up' | 'down') => void;
+    isFirst?: boolean;
+    isLast?: boolean;
 }
 
-export function Task({ taskId, text = 'Task', completed = false, subTasks = null, color = 'red', dueDate, onUpdateText, onAddSubTask, onRemoveTask, onUpdateColor, onUpdateDueDate, onToggleComplete }: TaskProps) {
+export function Task({ taskId, text = 'Task', completed = false, subTasks = null, color = 'red', dueDate, onUpdateText, onAddSubTask, onRemoveTask, onUpdateColor, onUpdateDueDate, onToggleComplete, onMoveTask, isFirst, isLast }: TaskProps) {
 
     const [isTaskExpanded, setIsTaskExpanded] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -357,7 +362,7 @@ export function Task({ taskId, text = 'Task', completed = false, subTasks = null
 
                                 {/* Due date option */}
                                 <TouchableOpacity
-                                    style={{ flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 }}
+                                    style={{ flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12, borderBottomWidth: 1, borderBottomColor: colors.grey }}
                                     onPress={() => setIsDatePickerVisible(true)}
                                     accessible={true}
                                     accessibilityLabel={dueDate ? `Change due date. Current: ${dueDate}` : 'Set due date'}
@@ -366,6 +371,34 @@ export function Task({ taskId, text = 'Task', completed = false, subTasks = null
                                     <Calendar size={20} color={colors.text_color1} />
                                     <Text style={{ color: colors.text_color1, fontSize: 16 }}>Due date</Text>
                                 </TouchableOpacity>
+
+                                {/* Move up / Move down options */}
+                                {onMoveTask && (
+                                    <View style={{ flexDirection: 'row' }}>
+                                        <TouchableOpacity
+                                            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, gap: 8, opacity: isFirst ? 0.35 : 1 }}
+                                            onPress={() => { if (!isFirst && taskId) { onMoveTask(taskId, 'up'); setIsMenuVisible(false); } }}
+                                            disabled={isFirst}
+                                            accessible={true}
+                                            accessibilityLabel="Move task up"
+                                            accessibilityRole="button"
+                                        >
+                                            <ArrowUp size={20} color={colors.text_color1} />
+                                            <Text style={{ color: colors.text_color1, fontSize: 16 }}>Up</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, gap: 8, opacity: isLast ? 0.35 : 1 }}
+                                            onPress={() => { if (!isLast && taskId) { onMoveTask(taskId, 'down'); setIsMenuVisible(false); } }}
+                                            disabled={isLast}
+                                            accessible={true}
+                                            accessibilityLabel="Move task down"
+                                            accessibilityRole="button"
+                                        >
+                                            <ArrowDown size={20} color={colors.text_color1} />
+                                            <Text style={{ color: colors.text_color1, fontSize: 16 }}>Down</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
                             </>
                         ) : isColorPickerVisible ? (
                             <View style={{ padding: 16 }} accessible={true} accessibilityLabel="Color picker">
