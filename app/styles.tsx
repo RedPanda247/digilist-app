@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
     padding: padding_small,
     gap: padding_small,
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     overflow: "hidden",
   },
 });

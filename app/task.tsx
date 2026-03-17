@@ -67,6 +67,22 @@ export function Task({ taskId, text = 'Task', completed = false, subTasks = null
         }
     }, [subTasks, isTaskExpanded, rotationValue]);
 
+    // Track whether we want to auto-expand after adding a subtask
+    const pendingExpandRef = useRef(false);
+
+    // Auto-expand when subtasks appear after requesting add
+    useEffect(() => {
+        if (pendingExpandRef.current && subTasks && subTasks.length > 0 && !isTaskExpanded) {
+            pendingExpandRef.current = false;
+            setIsTaskExpanded(true);
+            Animated.timing(rotationValue, {
+                toValue: 1,
+                duration: 200,
+                useNativeDriver: true,
+            }).start();
+        }
+    }, [subTasks, isTaskExpanded, rotationValue]);
+
     const toggle_content = () => {
         // Just toggle the state and rotate the chevron
         const toValue = isTaskExpanded ? 0 : 1;
@@ -82,32 +98,44 @@ export function Task({ taskId, text = 'Task', completed = false, subTasks = null
 
     const handleAddSubTask = () => {
         if (taskId && onAddSubTask) {
-            onAddSubTask(taskId);
-            // Expand the task to show the new subtask
+            // Mark that we want to expand once the new subtask arrives
             if (!isTaskExpanded) {
-                toggle_content();
+                pendingExpandRef.current = true;
             }
+            onAddSubTask(taskId);
         }
     };
 
     const handleRemoveTask = () => {
         if (taskId && onRemoveTask) {
-            Alert.alert(
-                'Delete Task',
-                'Are you sure you want to delete this task?',
-                [
-                    {
-                        text: 'Cancel',
-                        style: 'cancel'
-                    },
-                    {
-                        text: 'Delete',
-                        style: 'destructive',
-                        onPress: () => onRemoveTask(taskId)
-                    }
-                ],
-                { cancelable: true }
-            );
+            if (Platform.OS === 'web') {
+                const confirmed = window.confirm('Are you sure you want to delete this task?');
+                setIsMenuVisible(false);
+                if (confirmed) {
+                    onRemoveTask(taskId);
+                }
+            } else {
+                Alert.alert(
+                    'Delete Task',
+                    'Are you sure you want to delete this task?',
+                    [
+                        {
+                            text: 'Cancel',
+                            style: 'cancel',
+                            onPress: () => setIsMenuVisible(false)
+                        },
+                        {
+                            text: 'Delete',
+                            style: 'destructive',
+                            onPress: () => {
+                                setIsMenuVisible(false);
+                                onRemoveTask(taskId);
+                            }
+                        }
+                    ],
+                    { cancelable: true, onDismiss: () => setIsMenuVisible(false) }
+                );
+            }
         }
     };
 
@@ -187,7 +215,7 @@ export function Task({ taskId, text = 'Task', completed = false, subTasks = null
     const completedSubtasks = subTasks?.filter(st => st.completed).length || 0;
 
     return (
-        <View 
+        <View
             style={[styles.task, { backgroundColor: taskColorScheme.background }]}
             accessible={true}
             accessibilityLabel={`Task: ${text}${completed ? ', completed' : ''}${dueDate ? `, due ${dueDate}` : ''}${subtaskCount > 0 ? `, ${completedSubtasks} of ${subtaskCount} subtasks completed` : ''}`}
@@ -196,7 +224,7 @@ export function Task({ taskId, text = 'Task', completed = false, subTasks = null
             {/* Top */}
             <View style={[styles.task_top, { backgroundColor: taskColorScheme.top }]}>
                 {/* Checkmark icon */}
-                <TouchableOpacity 
+                <TouchableOpacity
                     onPress={handleToggleComplete}
                     accessible={true}
                     accessibilityLabel={completed ? 'Mark task as incomplete' : 'Mark task as complete'}
@@ -212,30 +240,36 @@ export function Task({ taskId, text = 'Task', completed = false, subTasks = null
                         height: font_size_text,
                         width: font_size_text,
                         backgroundColor: completed ? colors.text_color1 : 'transparent',
-                        marginTop: 2,
                     }}>
                     </View>
                 </TouchableOpacity>
 
                 {isEditing ? (
-                    <View style={{ flex: 1, flexShrink: 1 }}>
+                    <Pressable style={{ flex: 1, flexShrink: 1 }} onPress={(e) => e.stopPropagation()}>
                         <TextInput
-                            style={[styles.task_title, { borderWidth: 1, borderColor: colors.text_color1, padding: 4, borderRadius: 4 }]}
+                            style={[styles.task_title, { borderWidth: 1, borderColor: colors.text_color1, paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4 }]}
                             value={editText}
                             onChangeText={setEditText}
                             onBlur={finishEditing}
                             onSubmitEditing={finishEditing}
+                            onKeyPress={(e: any) => {
+                                if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+                                    e.preventDefault();
+                                    finishEditing();
+                                }
+                            }}
+                            multiline
+                            blurOnSubmit={false}
                             autoFocus
                             selectTextOnFocus
-                            multiline
                             accessible={true}
                             accessibilityLabel="Edit task name"
                             accessibilityHint="Type to change the task name"
                         />
-                    </View>
+                    </Pressable>
                 ) : (
                     <View style={{ flex: 1, flexShrink: 1 }}>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             onPress={startEditing}
                             accessible={true}
                             accessibilityLabel={`Edit task: ${text}`}
@@ -251,7 +285,7 @@ export function Task({ taskId, text = 'Task', completed = false, subTasks = null
 
                 {/* Due date display */}
                 {dueDate && (
-                    <View 
+                    <View
                         style={{ backgroundColor: 'rgba(0,0,0,0.3)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginRight: 4 }}
                         accessible={true}
                         accessibilityLabel={`Due date: ${dueDate}`}
@@ -262,8 +296,8 @@ export function Task({ taskId, text = 'Task', completed = false, subTasks = null
 
                 {/* Expand arrow - only visible if task has subtasks */}
                 {subTasks && subTasks.length > 0 ? (
-                    <TouchableOpacity 
-                        onPress={toggle_content} 
+                    <TouchableOpacity
+                        onPress={toggle_content}
                         style={{ marginRight: 4 }}
                         accessible={true}
                         accessibilityLabel={isTaskExpanded ? 'Collapse subtasks' : 'Expand subtasks'}
@@ -278,7 +312,7 @@ export function Task({ taskId, text = 'Task', completed = false, subTasks = null
                 ) : null}
 
                 {/* 3-dots menu button */}
-                <TouchableOpacity 
+                <TouchableOpacity
                     onPress={() => setIsMenuVisible(true)}
                     accessible={true}
                     accessibilityLabel="Open task menu"
@@ -311,7 +345,7 @@ export function Task({ taskId, text = 'Task', completed = false, subTasks = null
                     accessibilityRole="button"
                 >
                     <Pressable
-                        style={{ backgroundColor: colors.background2, borderRadius: 8, minWidth: 180, overflow: 'hidden' }}
+                        style={{ backgroundColor: colors.background2, borderRadius: 8, minWidth: isDatePickerVisible ? 250 : 180, maxWidth: '90%', overflow: 'hidden' }}
                         onPress={(e) => e.stopPropagation()}
                         accessible={true}
                         accessibilityLabel="Task menu"
@@ -321,10 +355,7 @@ export function Task({ taskId, text = 'Task', completed = false, subTasks = null
                                 {/* Trash option */}
                                 <TouchableOpacity
                                     style={{ flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12, borderBottomWidth: 1, borderBottomColor: colors.grey }}
-                                    onPress={() => {
-                                        handleRemoveTask();
-                                        setIsMenuVisible(false);
-                                    }}
+                                    onPress={handleRemoveTask}
                                     accessible={true}
                                     accessibilityLabel="Delete task"
                                     accessibilityRole="button"
@@ -425,7 +456,7 @@ export function Task({ taskId, text = 'Task', completed = false, subTasks = null
                                 </View>
                             </View>
                         ) : (
-                            <View style={{ padding: 16 }} accessible={true} accessibilityLabel="Date picker">
+                            <View style={{ padding: 16, width: '100%' }} accessible={true} accessibilityLabel="Date picker">
                                 <Text style={{ color: colors.text_color1, fontSize: 16, marginBottom: 12 }}>Set due date</Text>
                                 {Platform.OS === 'web' ? (
                                     <>
@@ -446,6 +477,7 @@ export function Task({ taskId, text = 'Task', completed = false, subTasks = null
                                                 border: `1px solid ${colors.grey}`,
                                                 fontSize: 16,
                                                 width: '100%',
+                                                boxSizing: 'border-box' as any,
                                                 marginBottom: 12,
                                                 colorScheme: 'dark'
                                             }}
@@ -508,7 +540,7 @@ export function Task({ taskId, text = 'Task', completed = false, subTasks = null
 
             {/* content/sub tasks - only render when expanded */}
             {isTaskExpanded && (
-                <View 
+                <View
                     style={{ padding: padding_small, gap: padding_small }}
                     accessible={true}
                     accessibilityLabel={`Subtasks for ${text}`}
